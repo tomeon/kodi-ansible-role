@@ -712,7 +712,6 @@ class Database:
                 """,
                 (database_version,),
             )
-            self.cursor.execute("UPDATE version SET idVersion = 33")
             self.connection.commit()
         except sqlite3.Error as e:
             self.connection.rollback()
@@ -836,10 +835,29 @@ class Manager(FilesystemMixin, KodiConfigMixin):
     def addon_database(self):
         return self._addon_database
 
+    # Oldest add-on database schema Kodi will migrate from
+    # (`CAddonDatabase::GetMinSchemaVersion`).
+    DATABASE_MIN_VERSION = 21
+
     def database_candidates(self):
+        """Yield existing add-on databases in the order Kodi would pick them.
+
+        Like `CDatabaseManager::Update`, prefer the database for the current
+        schema version, then the newest older one Kodi can migrate from.
+        Databases for newer schemas belong to a newer Kodi and are skipped.
+        """
+        version = int(self.database_version)
+        oldest = min(version, self.DATABASE_MIN_VERSION)
+        found = {}
+
         for database in glob.glob(
             os.path.join(self.data_dir, "userdata/Database/Addons*.db")
         ):
+            match = re.fullmatch(r"Addons(\d+)\.db", os.path.basename(database))
+            if match and oldest <= int(match.group(1)) <= version:
+                found[int(match.group(1))] = database
+
+        for _, database in sorted(found.items(), reverse=True):
             yield database
 
     def database_default(self):
