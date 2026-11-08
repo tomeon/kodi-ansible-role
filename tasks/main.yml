@@ -319,9 +319,11 @@
       - python
     filter: ansible_python
   when: "ansible_facts.python is not defined"
+  # Not `configure`/`get_addons`: a task is skipped if any of its tags is
+  # skipped, so `--skip-tags configure` would skip this but still run the
+  # `get_addons` consumer.
   tags:
-  - configure
-  - get_addons
+  - always
 
 - name: Get Kodi addons
   script:
