@@ -58,9 +58,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v8
+        uses: DeterminateSystems/nix-installer-action@v23
+        with:
+          # Install upstream Nix rather than Determinate Nix, and skip the
+          # FlakeHub login.
+          determinate: false
       - name: Set up Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v3
+        uses: DeterminateSystems/magic-nix-cache-action@v15
       - name: Run Nix flake checks
         run: |
           nix flake check -L
