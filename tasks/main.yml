@@ -311,7 +311,12 @@
 # `ansible_facts.python` exists only if the `python` fact subset was gathered.
 # The `ansible_python_interpreter` variable is no substitute: it may be unset
 # or name a discovery mode such as `auto`.
-- name: Gather the Python interpreter fact
+#
+# One task per consumer tag: a task is skipped if any of its tags is skipped, so
+# a single task tagged `configure` and `get_addons` would be skipped by
+# `--skip-tags configure` while the `get_addons` consumer still ran.  `always`
+# would instead run it for unrelated `--tags` selections.
+- name: Gather the Python interpreter fact (configure)
   setup:
     gather_subset:
       - "!all"
@@ -319,11 +324,19 @@
       - python
     filter: ansible_python
   when: "ansible_facts.python is not defined"
-  # Not `configure`/`get_addons`: a task is skipped if any of its tags is
-  # skipped, so `--skip-tags configure` would skip this but still run the
-  # `get_addons` consumer.
   tags:
-  - always
+  - configure
+
+- name: Gather the Python interpreter fact (get_addons)
+  setup:
+    gather_subset:
+      - "!all"
+      - "!min"
+      - python
+    filter: ansible_python
+  when: "ansible_facts.python is not defined"
+  tags:
+  - get_addons
 
 - name: Get Kodi addons
   script:
