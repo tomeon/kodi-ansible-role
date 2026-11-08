@@ -10,16 +10,27 @@ jobs:
     name: Run test playbook
     runs-on: ubuntu-22.04
     strategy:
+      # Report results for every distribution, not just the first failure.
+      fail-fast: false
       matrix:
+        # Supported stable/LTS releases, plus the current interim and
+        # development releases where available:
+        # - Alpine: https://alpinelinux.org/releases/
+        # - Debian: https://www.debian.org/releases/
+        # - Ubuntu: https://ubuntu.com/about/release-cycle
         image:
-          - alpine:3
+          - alpine:3.22
+          - alpine:3.23
+          - alpine:3.24
           - archlinux/archlinux
-          - debian:11
-          - debian:12
+          - debian:bookworm
+          - debian:trixie
+          - debian:forky
+          - debian:sid
           - ubuntu:22.04
-          # XXX addon installation is currently broken in Ubuntu 23.04 due to
-          # issues upstream of this role.  Omit from the workflow for now.
-          #- ubuntu:23.04
+          - ubuntu:24.04
+          - ubuntu:26.04
+          - ubuntu:26.10
     container:
       image: ${{ matrix.image }}
     steps:
@@ -31,6 +42,7 @@ jobs:
                echo 'tzdata tzdata/Areas select Europe' | debconf-set-selections \
             && echo 'tzdata tzdata/Zones/Europe select Bratislava' | debconf-set-selections \
             && apt -y update \
+            && apt -y upgrade \
             && apt -y install --no-install-recommends ansible sudo
           } || :
           { pacman --noconfirm -Sy archlinux-keyring && pacman --noconfirm -Su && pacman --noconfirm -S ansible sudo ; } || :
@@ -46,9 +58,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v8
+        uses: DeterminateSystems/nix-installer-action@v23
+        with:
+          # Install upstream Nix rather than Determinate Nix, and skip the
+          # FlakeHub login.
+          determinate: false
       - name: Set up Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v3
+        uses: DeterminateSystems/magic-nix-cache-action@v15
       - name: Run Nix flake checks
         run: |
           nix flake check -L

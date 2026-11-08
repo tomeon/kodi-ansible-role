@@ -2,7 +2,7 @@
 
 set -eu
 
-box="${1:-OSMC_TGT_rbp4_20240205.box}"
+box="${1:-OSMC_TGT_rbp4_20260920.box}"
 shift 2>/dev/null || :
 
 vagrantfile_add_rel="${0%/*}/../vagrant/share/osmc/Vagrantfile"
@@ -10,7 +10,7 @@ vagrantfile_add="$({ realpath "$vagrantfile_add_rel" || readlink -f "$vagrantfil
 
 date="${box##*_}"
 date="${date%%.*}"
-date="${date:-20240205}"
+date="${date:-20260920}"
 
 download_url=https://ftp.fau.de/osmc/osmc/download
 export CREATE_BOX_IMG_ARCHIVE_BASEURL="${CREATE_BOX_IMG_ARCHIVE_BASEURL:-"${download_url}/installers/diskimages"}"
