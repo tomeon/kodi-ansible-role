@@ -20,6 +20,12 @@ This file lists all notable changes to this project.
 
 ### Changed
 
+- Update the test suite (GitHub Actions matrix and Vagrant environment) to
+  cover currently-supported releases: Alpine Linux 3.22–3.24; Debian 12, 13,
+  testing, and unstable; Ubuntu 22.04, 24.04, 26.04, and 26.10; LibreELEC
+  12.2.1; and OSMC 20260920.  Drop end-of-life releases (Alpine Linux 3.19,
+  Debian 11, Ubuntu 23.04).  Replace unmaintained `generic/*` Vagrant boxes
+  and the no-longer-published `archlinux/archlinux` box (#12).
 - Create (if necessary) all groups in `kodi_groups` (#8).
 - Use the `service` module rather than the `systemd` for managing the Kodi
   service, thus supporting (e.g.) OpenRC on Alpine Linux (#8).

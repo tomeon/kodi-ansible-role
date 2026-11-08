@@ -14,6 +14,22 @@ def trigger_box_build(config, &block)
   end
 end
 
+# Provision with the test playbook.  This is called from each machine
+# definition, rather than defined once at the top level, so that
+# machine-specific provisioners (e.g. the one that installs `sudo` on Alpine)
+# run first; Vagrant runs top-level provisioners before machine-level ones.
+def provision_with_ansible(machine)
+  machine.vm.provision :ansible, type: 'ansible' do |ansible|
+    ansible.playbook = 'tests/test.yml'
+    ansible.verbose = 'vv'
+
+    # Vagrant uses the `--sudo` flag when `ansible.become` is enabled;
+    # evidently Ansible no longer supports `--sudo`.
+    #ansible.become = true
+    ansible.raw_arguments = %w[--become]
+  end
+end
+
 Vagrant.configure(2) do |config|
   # We don't need to sync this folder onto the guest, and disabling the synced
   # folder prevents Vagrant from bailing out on guests that lack `rsync` (e.g.
@@ -25,39 +41,62 @@ Vagrant.configure(2) do |config|
     domain.graphics_ip = '::'
   end
 
-  config.vm.define :alpine319 do |alpine|
-    alpine.vm.box = 'generic/alpine319'
+  # Alpine Linux, current stable branches:
+  # https://alpinelinux.org/releases/
+  %w[3.22 3.23 3.24].each do |version|
+    config.vm.define :"alpine#{version.delete('.')}" do |alpine|
+      alpine.vm.box = "cloud-image/alpine-#{version}"
+
+      # The Alpine cloud image ships neither `bash` nor `sudo`; it uses `doas`
+      # instead.  Install `sudo` so that Ansible's default `become` method
+      # works.
+      alpine.ssh.shell = 'sh'
+      alpine.ssh.sudo_command = 'doas %c'
+      alpine.vm.provision :install_sudo, type: :shell, privileged: true, inline: <<~SHELL
+        #!/bin/sh
+        set -eu
+        apk add --no-cache sudo
+        echo 'vagrant ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/vagrant
+        chmod 0440 /etc/sudoers.d/vagrant
+      SHELL
+
+      provision_with_ansible(alpine)
+    end
   end
 
+  # The official `archlinux/archlinux` box is no longer published (all versions
+  # are revoked), so use a box built from the official Arch Linux cloud image.
   config.vm.define :archlinux do |archlinux|
-    archlinux.vm.box = 'archlinux/archlinux'
+    archlinux.vm.box = 'cloud-image/arch-linux'
+    provision_with_ansible(archlinux)
   end
 
-  config.vm.define :debian11 do |debian11|
-    debian11.vm.box = 'generic/debian11'
-  end
-
+  # Debian oldstable (LTS) and stable:
+  # https://www.debian.org/releases/
   config.vm.define :debian12 do |debian12|
-    debian12.vm.box = 'generic/debian12'
+    debian12.vm.box = 'debian/bookworm64'
+    provision_with_ansible(debian12)
   end
 
-  config.vm.define :ubuntu2204 do |ubuntu2204|
-    ubuntu2204.vm.box = 'generic/ubuntu2204'
+  config.vm.define :debian13 do |debian13|
+    debian13.vm.box = 'debian/trixie64'
+    provision_with_ansible(debian13)
   end
 
-  # XXX addon installation is currently broken in Ubuntu 23.04 due to issues
-  # upstream of this role.  Do not bring up this machine by default.
-  config.vm.define :ubuntu2304, autostart: false, primary: false do |ubuntu2304|
-    ubuntu2304.vm.box = 'generic/ubuntu2304'
-  end
-
-  config.vm.define :ubuntu2404 do |ubuntu2404|
-    # No `generic/ubuntu2404` box available.
-    ubuntu2404.vm.box = 'bento/ubuntu-24.04'
+  # Ubuntu LTS releases still in standard support:
+  # https://ubuntu.com/about/release-cycle
+  #
+  # There is no libvirt box for the current interim release (26.10); it is
+  # covered by the GitHub Actions workflow instead.
+  %w[22.04 24.04 26.04].each do |version|
+    config.vm.define :"ubuntu#{version.delete('.')}" do |ubuntu|
+      ubuntu.vm.box = "cloud-image/ubuntu-#{version}"
+      provision_with_ansible(ubuntu)
+    end
   end
 
   config.vm.define :libreelec do |libreelec|
-    box = File.expand_path('tmp/libreelec/LibreELEC-Generic.x86_64-11.0.6.box', __dir__)
+    box = File.expand_path('tmp/libreelec/LibreELEC-Generic.x86_64-12.2.1.box', __dir__)
 
     trigger_box_build(libreelec) do |t|
       t.name = 'Create LibreELEC box'
@@ -72,10 +111,11 @@ Vagrant.configure(2) do |config|
 
     libreelec.vm.box_url = "file://#{box}"
     libreelec.vm.box = 'libreelec'
+    provision_with_ansible(libreelec)
   end
 
   config.vm.define :osmc do |osmc|
-    box = File.expand_path('tmp/osmc/OSMC_TGT_rbp4_20240205.box', __dir__)
+    box = File.expand_path('tmp/osmc/OSMC_TGT_rbp4_20260920.box', __dir__)
 
     trigger_box_build(osmc) do |t|
       t.name = 'Create OSMC box'
@@ -104,15 +144,6 @@ Vagrant.configure(2) do |config|
 
     osmc.vm.box_url = "file://#{box}"
     osmc.vm.box = 'osmc'
-  end
-
-  config.vm.provision :ansible, type: 'ansible' do |ansible|
-    ansible.playbook = 'tests/test.yml'
-    ansible.verbose = 'vv'
-
-    # Vagrant uses the `--sudo` flag when `ansible.become` is enabled;
-    # evidently Ansible no longer supports `--sudo`.
-    #ansible.become = true
-    ansible.raw_arguments = %w[--become]
+    provision_with_ansible(osmc)
   end
 end

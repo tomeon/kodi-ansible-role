@@ -38,14 +38,17 @@ This project includes a Vagrant environment for testing the
 `jose1711.kodi_ansible_role` Ansible role on several Linux distributions.  As
 of this writing, those distributions are:
 
-1. Alpine Linux 3.19
-2. Arch Linux
-3. Debian 11 (bullseye)
-4. Debian 12 (bookworm)
-5. Ubuntu 22.04 LTS (Jammy Jellyfish)
-6. Ubuntu 23.04 LTS (Lunar Lobster)[^lunar-lobster-disabled]
-7. LibreELEC 11.0.6
-8. OSMC 20240205
+1. Alpine Linux 3.22
+2. Alpine Linux 3.23
+3. Alpine Linux 3.24
+4. Arch Linux
+5. Debian 12 (bookworm)
+6. Debian 13 (trixie)
+7. Ubuntu 22.04 LTS (Jammy Jellyfish)
+8. Ubuntu 24.04 LTS (Noble Numbat)
+9. Ubuntu 26.04 LTS (Resolute Raccoon)
+10. LibreELEC 12.2.1
+11. OSMC 20260920
 
 This Vagrant environment supports the
 [`libvirt` provider](https://vagrant-libvirt.github.io/vagrant-libvirt/)[^provider-support].
@@ -159,12 +162,18 @@ automated testing.  The main workflow definition is
 [`.github/workflows/ci.yml`][].  As of this writing, the workflow applies this
 Ansible role to containers based upon the following images:
 
-1. `alpine:3`
-2. `archlinux/archlinux`
-3. `debian:11`
-4. `debian:12`
-5. `ubuntu:22.04`
-6. `ubuntu:23.04`[^lunar-lobster-disabled]
+1. `alpine:3.22`
+2. `alpine:3.23`
+3. `alpine:3.24`
+4. `archlinux/archlinux`
+5. `debian:bookworm` (12)
+6. `debian:trixie` (13)
+7. `debian:forky` (testing)
+8. `debian:sid` (unstable)
+9. `ubuntu:22.04`
+10. `ubuntu:24.04`
+11. `ubuntu:26.04`
+12. `ubuntu:26.10`
 
 Please ensure that the workflow succeeds when run against your branch.
 
@@ -186,9 +195,3 @@ This will run the `native` job from [`.github/workflows/ci.yml`][].
 > images in [`.github/workflows/ci.yml`][], and, if necessary, update
 > [`tests/test.yml`][] to install Ansible's dependencies on containers using
 > this image.  Additionally, please add the new image to the list above.
-
-[^lunar-lobster-disabled]: Note that Ubuntu 23.04 is currently disabled by
-                           default in the Vagrantfile and omitted from the
-                           GitHub Actions job matrix due to upstream issues
-                           that prevent automatic installation of certain
-                           addons.
