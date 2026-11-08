@@ -835,15 +835,19 @@ class Manager(FilesystemMixin, KodiConfigMixin):
     def addon_database(self):
         return self._addon_database
 
-    # Oldest add-on database schema Kodi will migrate from
-    # (`CAddonDatabase::GetMinSchemaVersion`).
-    DATABASE_MIN_VERSION = 21
+    # Oldest add-on database schema to fall back to.  Kodi migrates from
+    # schema 21 (`CAddonDatabase::GetMinSchemaVersion`), but schemas 21-26
+    # were only used by Kodi 17 pre-releases and lack the `addons` table that
+    # `Database.populate` would add; Kodi's own migration would then fail to
+    # create it.  Schema 27 (Kodi 17 and 18) is the oldest released one.
+    DATABASE_MIN_VERSION = 27
 
     def database_candidates(self):
         """Yield existing add-on databases in the order Kodi would pick them.
 
         Like `CDatabaseManager::Update`, prefer the database for the current
-        schema version, then the newest older one Kodi can migrate from.
+        schema version, then the newest older one Kodi can migrate from (no
+        older than `DATABASE_MIN_VERSION`).
         Databases for newer schemas belong to a newer Kodi and are skipped.
         """
         version = int(self.database_version)
