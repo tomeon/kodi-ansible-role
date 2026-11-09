@@ -308,11 +308,41 @@
   tags:
   - get_addons
 
+# `ansible_facts.python` exists only if the `python` fact subset was gathered.
+# The `ansible_python_interpreter` variable is no substitute: it may be unset
+# or name a discovery mode such as `auto`.
+#
+# One task per consumer tag: a task is skipped if any of its tags is skipped, so
+# a single task tagged `configure` and `get_addons` would be skipped by
+# `--skip-tags configure` while the `get_addons` consumer still ran.  `always`
+# would instead run it for unrelated `--tags` selections.
+- name: Gather the Python interpreter fact (configure)
+  setup:
+    gather_subset:
+      - "!all"
+      - "!min"
+      - python
+    filter: ansible_python
+  when: "ansible_facts.python is not defined"
+  tags:
+  - configure
+
+- name: Gather the Python interpreter fact (get_addons)
+  setup:
+    gather_subset:
+      - "!all"
+      - "!min"
+      - python
+    filter: ansible_python
+  when: "ansible_facts.python is not defined"
+  tags:
+  - get_addons
+
 - name: Get Kodi addons
   script:
     cmd: "get_kodi_addon.py --kodi-version {{ kodi_version | quote }} install {{ kodi_addons | map('quote') | join(' ') }}"
     # Use a known python interpreter rather than relying on (say) `/usr/bin/env python`.
-    executable: "{{ ansible_python.executable | default(ansible_python_interpreter) }}"
+    executable: "{{ ansible_facts.python.executable }}"
   become_user: "{{ kodi_user }}"
   become: True
   environment:
@@ -388,7 +418,7 @@
 
 - block:
   - name: "Test if Ansible 'xml' module prerequisites are available"
-    command: "{{ ansible_python.executable | default(ansible_python_interpreter) | quote }} -c 'import lxml'"
+    command: "{{ ansible_facts.python.executable | quote }} -c 'import lxml'"
     changed_when: False
     tags: configure
   - include_tasks:
