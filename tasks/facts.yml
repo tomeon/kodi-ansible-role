@@ -38,7 +38,8 @@
         '19': 'matrix',
         '20': 'nexus',
         '21': 'omega',
-      }[(kodi_version | regex_replace('\\..*$', ''))] | default('omega')
+        '22': 'piers',
+      }[(kodi_version | regex_replace('\\..*$', ''))] | default('piers')
     }}"
   tags:
   - get_addons
