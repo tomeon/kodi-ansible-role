@@ -1,0 +1,22 @@
+---
+# Written by `scripts/kodi_addon_schema.py --write`; do not edit by hand.
+# Kodi major version -> codename, from the release tags of
+# https://github.com/xbmc/xbmc (e.g. `21.3-Omega`).
+
+kodi_codenames:
+  '10': dharma
+  '11': eden
+  '12': frodo
+  '13': gotham
+  '14': helix
+  '15': isengard
+  '16': jarvis
+  '17': krypton
+  '18': leia
+  '19': matrix
+  '20': nexus
+  '21': omega
+  '22': piers
+
+# Used for versions newer than any listed above.
+kodi_codename_latest: piers

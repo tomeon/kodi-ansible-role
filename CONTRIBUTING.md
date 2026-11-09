@@ -1,5 +1,9 @@
 [`tests/test.yml`]: /tests/test.yml
 [`.github/workflows/ci.yml`]: /.github/workflows/ci.yml
+[`.github/workflows/kodi-schema.yml`]: /.github/workflows/kodi-schema.yml
+[`files/get_kodi_addon.py`]: /files/get_kodi_addon.py
+[`scripts/kodi_addon_schema.py`]: /scripts/kodi_addon_schema.py
+[`vars/kodi_codenames.yml`]: /vars/kodi_codenames.yml
 [Nix development shell]: #nix-development-shell
 
 # Contributing to `jose1711.kodi_ansible_role`
@@ -195,3 +199,45 @@ This will run the `native` job from [`.github/workflows/ci.yml`][].
 > images in [`.github/workflows/ci.yml`][], and, if necessary, update
 > [`tests/test.yml`][] to install Ansible's dependencies on containers using
 > this image.  Additionally, please add the new image to the list above.
+
+## Keeping up with Kodi releases
+
+Two things in this role come straight from Kodi's source code rather than
+being written by hand:
+
+- the `KODI_ADDON_DB` block in [`files/get_kodi_addon.py`][], which maps each
+  Kodi major version to its add-on database schema and holds the SQL Kodi uses
+  to create that database; and
+- [`vars/kodi_codenames.yml`][], which maps each Kodi major version to its
+  codename (`21` → `omega`).
+
+[`scripts/kodi_addon_schema.py`][] generates both from the newest release tag
+of each major version in [Kodi's repository](https://github.com/xbmc/xbmc).
+Do not edit them by hand; instead run:
+
+```console
+$ scripts/kodi_addon_schema.py --write   # regenerate both files
+$ scripts/kodi_addon_schema.py --check   # exit 1 if either is out of date
+$ scripts/kodi_addon_schema.py --report  # print a summary table
+```
+
+The script's tests live in `scripts/tests/`:
+
+```console
+$ python3 -m unittest discover -s scripts/tests -t .
+```
+
+The [`.github/workflows/kodi-schema.yml`][] workflow runs these checks on pull
+requests that touch the generated files.  Every Monday, and on demand, it also
+regenerates the files and, if anything changed, opens (or updates) a pull
+request from the `bot/kodi-addon-schema` branch.  That pull request is opened
+with the workflow's own token, so CI does not start on it by itself: close and
+reopen it, or run the "Run kodi-ansible-role tests" workflow on its branch by
+hand.  For GitHub Actions to open it at all, the repository setting "Allow
+GitHub Actions to create and approve pull requests" must be enabled.
+
+Scheduled and manual runs also fail when Kodi's `master` branch has an add-on
+database schema that no release has yet.  This check is its own job, so it can
+be told apart from a failure to regenerate the files.  That is an early warning; there is nothing to
+update until Kodi tags a release with it.
+
