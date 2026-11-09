@@ -1,6 +1,9 @@
 """Offline tests for scripts/kodi_addon_schema.py."""
 
+import contextlib
+import io
 import unittest
+from unittest import mock
 
 from scripts.tests.helpers import get_kodi_addon, schema
 
@@ -180,6 +183,27 @@ class BuildTest(unittest.TestCase):
         self.assertIn("schema 34", schema.master_drift(data, bumped))
         changed = dict(same, ddl=same["ddl"] + ("CREATE TABLE x (y)",))
         self.assertIn("without a version bump", schema.master_drift(data, changed))
+
+
+class MainTest(unittest.TestCase):
+    def test_unreadable_master_only_fails_check_master(self):
+        record = schema.extract_from_sources("21.3-Omega", ADDON_CPP, None, BASE_CPP)
+        data = {
+            "majors": {21: 33},
+            "schemas": {33: dict(record, sources=["21.3-Omega"])},
+            "codenames": {21: "omega"},
+        }
+
+        def extract(ref, fetcher=None):
+            raise schema.ExtractionError("{0}: cannot parse".format(ref))
+
+        with mock.patch.object(schema, "list_tags", return_value=["21.3-Omega"]), \
+                mock.patch.object(schema, "build", return_value=data), \
+                mock.patch.object(schema, "extract", side_effect=extract), \
+                contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(schema.main(["--report"]), 0)
+            self.assertEqual(schema.main(["--check-master"]), 2)
 
 
 class RenderTest(unittest.TestCase):

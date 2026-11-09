@@ -476,7 +476,9 @@ def main(argv=None):
     try:
         releases = select_releases(list_tags())
         data = build(releases)
-        master = extract("master") if (args.report or args.check_master) else None
+        # Only `--check-master` reads `master`, so a change there that cannot
+        # be extracted never blocks updating from releases.
+        master = extract("master") if args.check_master else None
     except ExtractionError as e:
         print("error: {0}".format(e), file=sys.stderr)
         return 2
