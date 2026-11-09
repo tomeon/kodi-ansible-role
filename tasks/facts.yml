@@ -22,24 +22,19 @@
     fail_msg: "Kodi version '{{ kodi_version | default('<unset>')}}' is not a valid version string or is an unsupported Kodi version"
     success_msg: "Kodi version '{{ kodi_version | default('<unset>')}}' is a valid version string and is a supported Kodi version"
 
+# `kodi_codenames.yml` is written by `scripts/kodi_addon_schema.py` from
+# Kodi's release tags.
+- name: Load Kodi codenames
+  include_vars:
+    file: kodi_codenames.yml
+  tags:
+  - get_addons
+
 - name: Set Kodi codename as Ansible fact
   set_fact:
     kodi_codename: "{{
-      {
-        '10': 'dharma',
-        '11': 'eden',
-        '12': 'frodo',
-        '13': 'gotham',
-        '14': 'helix',
-        '15': 'isengard',
-        '16': 'jarvis',
-        '17': 'krypton',
-        '18': 'leia',
-        '19': 'matrix',
-        '20': 'nexus',
-        '21': 'omega',
-        '22': 'piers',
-      }[(kodi_version | regex_replace('\\..*$', ''))] | default('piers')
+      kodi_codenames[kodi_version | regex_replace('\\..*$', '')]
+      | default(kodi_codename_latest)
     }}"
   tags:
   - get_addons

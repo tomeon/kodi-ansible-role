@@ -17,8 +17,19 @@ This file lists all notable changes to this project.
 - Add the new `kodi_service` variable for managing the Kodi service,
   emphasizing that this role supports both system and non-systemd service
   managers (#8).
+- `scripts/kodi_addon_schema.py` and the `kodi-schema` GitHub Actions workflow,
+  which generate the add-on database schemas and the Kodi codename map from
+  Kodi's release tags, check them on pull requests, and open a pull request
+  weekly when Kodi publishes a change.
 
 ### Changed
+
+- `get_kodi_addon.py` creates new add-on databases with the exact SQL Kodi
+  uses, read from Kodi's source, instead of hand-written approximations; this
+  corrects the tables created for Kodi 17 and 18.  The Kodi codename map moved
+  to the generated `vars/kodi_codenames.yml`.
+- Installing add-ons on Kodi 16 now fails with a clear error.  Its add-on
+  database has no `installed` table, so the script could not have worked.
 
 - Update the test suite (GitHub Actions matrix and Vagrant environment) to
   cover currently-supported releases: Alpine Linux 3.22–3.24; Debian 12, 13,

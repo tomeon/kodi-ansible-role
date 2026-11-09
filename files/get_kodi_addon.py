@@ -646,6 +646,105 @@ class Repository(PackageMixin, DocumentMixin, SpecifierMixin):
         yield datadir.geturl()
 
 
+# BEGIN GENERATED KODI_ADDON_DB
+# Written by `scripts/kodi_addon_schema.py --write`; do not edit by hand.
+# Add-on database DDL as Kodi creates it (`CAddonDatabase::CreateTables`
+# and `CreateAnalytics` in xbmc/addons/AddonDatabase.cpp, plus the `version`
+# table from xbmc/dbwrappers/Database.cpp), at each `sources` release tag
+# of https://github.com/xbmc/xbmc.
+KODI_ADDON_DB = {
+    "majors": {
+        16: 20,
+        17: 27,
+        18: 27,
+        19: 33,
+        20: 33,
+        21: 33,
+        22: 33,
+    },
+    "schemas": {
+        20: {
+            "min_schema": 15,
+            "supported": False,
+            "sources": (
+                "16.1-Jarvis",
+            ),
+            "ddl": (
+                "CREATE TABLE version (idVersion integer, iCompressCount integer)",
+                "CREATE TABLE addon (id integer primary key, type text,name text, summary text, description text, stars integer,path text, addonID text, icon text, version text, changelog text, fanart text, author text, disclaimer text,minversion text)",
+                "CREATE TABLE addonextra (id integer, key text, value text)",
+                "CREATE TABLE dependencies (id integer, addon text, version text, optional boolean)",
+                "CREATE TABLE repo (id integer primary key, addonID text,checksum text, lastcheck text, version text)",
+                "CREATE TABLE addonlinkrepo (idRepo integer, idAddon integer)",
+                "CREATE TABLE disabled (id integer primary key, addonID text)",
+                "CREATE TABLE broken (id integer primary key, addonID text, reason text)",
+                "CREATE TABLE blacklist (id integer primary key, addonID text)",
+                "CREATE TABLE package (id integer primary key, addonID text, filename text, hash text)",
+                "CREATE TABLE system (id integer primary key, addonID text)",
+                "CREATE INDEX idxAddon ON addon(addonID)",
+                "CREATE INDEX idxAddonExtra ON addonextra(id)",
+                "CREATE INDEX idxDependencies ON dependencies(id)",
+                "CREATE UNIQUE INDEX ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo )",
+                "CREATE UNIQUE INDEX ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon )",
+                "CREATE UNIQUE INDEX idxDisabled ON disabled(addonID)",
+                "CREATE UNIQUE INDEX idxBroken ON broken(addonID)",
+                "CREATE UNIQUE INDEX idxBlack ON blacklist(addonID)",
+                "CREATE UNIQUE INDEX idxPackage ON package(filename)",
+            ),
+        },
+        27: {
+            "min_schema": 15,
+            "supported": True,
+            "sources": (
+                "17.6-Krypton",
+                "18.9-Leia",
+            ),
+            "ddl": (
+                "CREATE TABLE version (idVersion integer, iCompressCount integer)",
+                "CREATE TABLE addons (id INTEGER PRIMARY KEY,metadata BLOB,addonID TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,summary TEXT NOT NULL,news TEXT NOT NULL,description TEXT NOT NULL)",
+                "CREATE TABLE repo (id integer primary key, addonID text,checksum text, lastcheck text, version text)",
+                "CREATE TABLE addonlinkrepo (idRepo integer, idAddon integer)",
+                "CREATE TABLE broken (id integer primary key, addonID text, reason text)",
+                "CREATE TABLE blacklist (id integer primary key, addonID text)",
+                "CREATE TABLE package (id integer primary key, addonID text, filename text, hash text)",
+                "CREATE TABLE installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, lastUpdated TEXT, lastUsed TEXT, origin TEXT NOT NULL DEFAULT '')",
+                "CREATE INDEX idxAddons ON addons(addonID)",
+                "CREATE UNIQUE INDEX ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo )",
+                "CREATE UNIQUE INDEX ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon )",
+                "CREATE UNIQUE INDEX idxBroken ON broken(addonID)",
+                "CREATE UNIQUE INDEX idxBlack ON blacklist(addonID)",
+                "CREATE UNIQUE INDEX idxPackage ON package(filename)",
+            ),
+        },
+        33: {
+            "min_schema": 21,
+            "supported": True,
+            "sources": (
+                "19.5-Matrix",
+                "20.5-Nexus",
+                "21.3-Omega",
+                "22.0rc1-Piers",
+            ),
+            "ddl": (
+                "CREATE TABLE version (idVersion integer, iCompressCount integer)",
+                "CREATE TABLE addons (id INTEGER PRIMARY KEY,metadata BLOB,addonID TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,summary TEXT NOT NULL,news TEXT NOT NULL,description TEXT NOT NULL)",
+                "CREATE TABLE repo (id integer primary key, addonID text,checksum text, lastcheck text, version text, nextcheck TEXT)",
+                "CREATE TABLE addonlinkrepo (idRepo integer, idAddon integer)",
+                "CREATE TABLE update_rules (id integer primary key, addonID TEXT, updateRule INTEGER)",
+                "CREATE TABLE package (id integer primary key, addonID text, filename text, hash text)",
+                "CREATE TABLE installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, lastUpdated TEXT, lastUsed TEXT, origin TEXT NOT NULL DEFAULT '', disabledReason INTEGER NOT NULL DEFAULT 0)",
+                "CREATE INDEX idxAddons ON addons(addonID)",
+                "CREATE UNIQUE INDEX ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo )",
+                "CREATE UNIQUE INDEX ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon )",
+                "CREATE UNIQUE INDEX idxUpdate_rules ON update_rules(addonID, updateRule)",
+                "CREATE UNIQUE INDEX idxPackage ON package(filename)",
+            ),
+        },
+    },
+}
+# END GENERATED KODI_ADDON_DB
+
+
 class Database:
     def __init__(self, path):
         self.path = path
@@ -679,52 +778,14 @@ class Database:
             self._cursor = self.connection.cursor()
             return self._cursor
 
-    # Schema 33 as created by Kodi 19 and later; see `CAddonDatabase::CreateTables`
-    # and `CAddonDatabase::CreateAnalytics` in
-    # https://github.com/xbmc/xbmc/blob/Omega/xbmc/addons/AddonDatabase.cpp
-    SCHEMA_33 = """
-        BEGIN;
-
-        CREATE TABLE IF NOT EXISTS version (idVersion integer, iCompressCount integer);
-        CREATE TABLE IF NOT EXISTS addons (id INTEGER PRIMARY KEY,metadata BLOB,addonID TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,summary TEXT NOT NULL,news TEXT NOT NULL,description TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS repo (id integer primary key, addonID text,checksum text, lastcheck text, version text, nextcheck TEXT);
-        CREATE TABLE IF NOT EXISTS addonlinkrepo (idRepo integer, idAddon integer);
-        CREATE TABLE IF NOT EXISTS update_rules (id integer primary key, addonID TEXT, updateRule INTEGER);
-        CREATE TABLE IF NOT EXISTS package (id integer primary key, addonID text, filename text, hash text);
-        CREATE TABLE IF NOT EXISTS installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, lastUpdated TEXT, lastUsed TEXT, origin TEXT NOT NULL DEFAULT '', disabledReason INTEGER NOT NULL DEFAULT 0);
-
-        CREATE INDEX IF NOT EXISTS idxAddons ON addons(addonID);
-        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo );
-        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon );
-        CREATE UNIQUE INDEX IF NOT EXISTS idxUpdate_rules ON update_rules(addonID, updateRule);
-        CREATE UNIQUE INDEX IF NOT EXISTS idxPackage ON package(filename);
-
-        COMMIT;
-    """
-
-    # The schema this script created for every version before schema 33 was
-    # handled separately; used for older Kodi versions.
-    SCHEMA_27 = """
-        BEGIN;
-
-        CREATE TABLE IF NOT EXISTS version (idVersion integer, iCompressCount integer);
-        CREATE TABLE IF NOT EXISTS repo (id integer primary key, addonID text,checksum text, lastcheck text, version text);
-        CREATE TABLE IF NOT EXISTS addonlinkrepo (idRepo integer, idAddon integer);
-        CREATE TABLE IF NOT EXISTS broken (id integer primary key, addonID text, reason text);
-        CREATE TABLE IF NOT EXISTS blacklist (id integer primary key, addonID text);
-        CREATE TABLE IF NOT EXISTS package (id integer primary key, addonID text, filename text, hash text);
-        CREATE TABLE IF NOT EXISTS installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, lastUpdated TEXT, lastUsed TEXT, origin TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS addons (id INTEGER PRIMARY KEY,metadata BLOB,addonID TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,summary TEXT NOT NULL,description TEXT NOT NULL, news TEXT NOT NULL DEFAULT '');
-
-        CREATE INDEX IF NOT EXISTS idxAddons ON addons(addonID);
-
-        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo );
-        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon );
-        CREATE UNIQUE INDEX IF NOT EXISTS idxBroken ON broken(addonID);
-        CREATE UNIQUE INDEX IF NOT EXISTS idxBlack ON blacklist(addonID);
-        CREATE UNIQUE INDEX IF NOT EXISTS idxPackage ON package(filename);
-
-        COMMIT;
-    """
+    @staticmethod
+    def idempotent(statement):
+        """Turn Kodi's `CREATE TABLE/INDEX` into `CREATE ... IF NOT EXISTS`."""
+        return re.sub(
+            r"^CREATE (TABLE|INDEX|UNIQUE INDEX) (?!IF NOT EXISTS )",
+            r"CREATE \1 IF NOT EXISTS ",
+            statement,
+        )
 
     def has_version(self):
         res = self.cursor.execute(
@@ -742,10 +803,12 @@ class Database:
         # A database that already records a schema version belongs to Kodi;
         # adding tables to it could break Kodi's own migrations.
         if not self.has_version():
-            if int(database_version) >= 33:
-                self.cursor.executescript(self.SCHEMA_33)
-            else:
-                self.cursor.executescript(self.SCHEMA_27)
+            ddl = KODI_ADDON_DB["schemas"][int(database_version)]["ddl"]
+            self.cursor.executescript(
+                "BEGIN;\n"
+                + "".join(self.idempotent(s) + ";\n" for s in ddl)
+                + "COMMIT;\n"
+            )
 
         try:
             self.cursor.execute("BEGIN TRANSACTION")
@@ -919,22 +982,19 @@ class Manager(FilesystemMixin, KodiConfigMixin):
         try:
             return self._database_version
         except AttributeError:
-            database_version_map = {
-                16: "20",
-                17: "27",
-                18: "27",
-                19: "33",
-                20: "33",
-                21: "33",
-                22: "33",
-            }
+            major = self.kodi_version.major
+            schema = KODI_ADDON_DB["majors"].get(major)
 
-            if self.kodi_version.major not in database_version_map:
+            if schema is None:
+                raise Exception("unsupported Kodi version: {0}".format(major))
+
+            if not KODI_ADDON_DB["schemas"][schema]["supported"]:
                 raise Exception(
-                    "unsupported Kodi version: {0}".format(self.kodi_version.major)
+                    "unsupported Kodi version: {0} (its add-on database, schema {1}, "
+                    "has no `installed` table)".format(major, schema)
                 )
 
-            self._database_version = database_version_map[self.kodi_version.major]
+            self._database_version = schema
 
             return self._database_version
 
