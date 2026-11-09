@@ -276,7 +276,8 @@ def has_installed_table(ddl):
         raise ExtractionError("generated DDL does not run: {0}".format(e))
     finally:
         db.close()
-    return {"addonID", "enabled"} <= columns
+    # `Database.upsert_installed` and friends use these columns.
+    return {"addonID", "enabled", "installDate"} <= columns
 
 
 def extract_from_sources(ref, cpp, header, base_cpp):

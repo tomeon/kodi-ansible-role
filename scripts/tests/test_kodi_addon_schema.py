@@ -27,7 +27,7 @@ void CAddonDatabase::CreateTables()
 {
   CLog::Log(LOGINFO, "create installed table");  // a "quoted" comment
   m_pDS->exec("CREATE TABLE installed (id INTEGER PRIMARY KEY, "
-              "addonID TEXT UNIQUE, enabled BOOLEAN, "  /* inline comment */
+              "addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, "  /* inline comment */
               "origin TEXT NOT NULL DEFAULT '')\n");
   m_pDS->exec("CREATE TABLE package (id integer primary key, note text DEFAULT \"x\")\n");
 }
@@ -92,7 +92,7 @@ class ExtractTest(unittest.TestCase):
             (
                 "CREATE TABLE version (idVersion integer, iCompressCount integer)",
                 "CREATE TABLE installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, "
-                "enabled BOOLEAN, origin TEXT NOT NULL DEFAULT '')",
+                "enabled BOOLEAN, installDate TEXT, origin TEXT NOT NULL DEFAULT '')",
                 'CREATE TABLE package (id integer primary key, note text DEFAULT "x")',
                 "CREATE UNIQUE INDEX idxPackage ON package(id)",
             ),
@@ -102,6 +102,11 @@ class ExtractTest(unittest.TestCase):
     def test_reads_versions_from_header_and_flags_missing_installed_table(self):
         record = schema.extract_from_sources("ref", JARVIS_CPP, JARVIS_H, BASE_CPP)
         self.assertEqual((record["schema"], record["min_schema"]), (20, 15))
+        self.assertFalse(record["supported"])
+
+    def test_requires_columns_the_script_writes(self):
+        cpp = ADDON_CPP.replace("installDate TEXT, ", "")
+        record = schema.extract_from_sources("ref", cpp, None, BASE_CPP)
         self.assertFalse(record["supported"])
 
     def test_rejects_non_literal_sql(self):

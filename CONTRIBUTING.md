@@ -236,7 +236,8 @@ reopen it, or run the "Run kodi-ansible-role tests" workflow on its branch by
 hand.  For GitHub Actions to open it at all, the repository setting "Allow
 GitHub Actions to create and approve pull requests" must be enabled.
 
-The scheduled run also fails when Kodi's `master` branch has an add-on database
-schema that no release has yet.  That is an early warning; there is nothing to
+Scheduled and manual runs also fail when Kodi's `master` branch has an add-on
+database schema that no release has yet.  This check is its own job, so it can
+be told apart from a failure to regenerate the files.  That is an early warning; there is nothing to
 update until Kodi tags a release with it.
 

@@ -82,7 +82,15 @@ jobs:
               --title "Update Kodi add-on schema and codenames from upstream" \
               --body-file "$RUNNER_TEMP/body.md"
           fi
-      # Fails the run when Kodi's development branch has an add-on schema that
-      # no release has yet: an early warning, with nothing to update.
-      - name: Check Kodi's master branch
+
+  # A separate job, so this early warning (Kodi's development branch has an
+  # add-on schema that no release has yet; nothing to update) is not confused
+  # with a failure of the `update` job.
+  master:
+    name: Check Kodi's master branch
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare Kodi's master branch with its newest release
         run: python3 scripts/kodi_addon_schema.py --check-master
