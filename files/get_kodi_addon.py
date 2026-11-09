@@ -679,30 +679,73 @@ class Database:
             self._cursor = self.connection.cursor()
             return self._cursor
 
-    def populate(self, database_version):
-        self.cursor.executescript(
+    # Schema 33 as created by Kodi 19 and later; see `CAddonDatabase::CreateTables`
+    # and `CAddonDatabase::CreateAnalytics` in
+    # https://github.com/xbmc/xbmc/blob/Omega/xbmc/addons/AddonDatabase.cpp
+    SCHEMA_33 = """
+        BEGIN;
+
+        CREATE TABLE IF NOT EXISTS version (idVersion integer, iCompressCount integer);
+        CREATE TABLE IF NOT EXISTS addons (id INTEGER PRIMARY KEY,metadata BLOB,addonID TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,summary TEXT NOT NULL,news TEXT NOT NULL,description TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS repo (id integer primary key, addonID text,checksum text, lastcheck text, version text, nextcheck TEXT);
+        CREATE TABLE IF NOT EXISTS addonlinkrepo (idRepo integer, idAddon integer);
+        CREATE TABLE IF NOT EXISTS update_rules (id integer primary key, addonID TEXT, updateRule INTEGER);
+        CREATE TABLE IF NOT EXISTS package (id integer primary key, addonID text, filename text, hash text);
+        CREATE TABLE IF NOT EXISTS installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, lastUpdated TEXT, lastUsed TEXT, origin TEXT NOT NULL DEFAULT '', disabledReason INTEGER NOT NULL DEFAULT 0);
+
+        CREATE INDEX IF NOT EXISTS idxAddons ON addons(addonID);
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo );
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon );
+        CREATE UNIQUE INDEX IF NOT EXISTS idxUpdate_rules ON update_rules(addonID, updateRule);
+        CREATE UNIQUE INDEX IF NOT EXISTS idxPackage ON package(filename);
+
+        COMMIT;
+    """
+
+    # The schema this script created for every version before schema 33 was
+    # handled separately; used for older Kodi versions.
+    SCHEMA_27 = """
+        BEGIN;
+
+        CREATE TABLE IF NOT EXISTS version (idVersion integer, iCompressCount integer);
+        CREATE TABLE IF NOT EXISTS repo (id integer primary key, addonID text,checksum text, lastcheck text, version text);
+        CREATE TABLE IF NOT EXISTS addonlinkrepo (idRepo integer, idAddon integer);
+        CREATE TABLE IF NOT EXISTS broken (id integer primary key, addonID text, reason text);
+        CREATE TABLE IF NOT EXISTS blacklist (id integer primary key, addonID text);
+        CREATE TABLE IF NOT EXISTS package (id integer primary key, addonID text, filename text, hash text);
+        CREATE TABLE IF NOT EXISTS installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, lastUpdated TEXT, lastUsed TEXT, origin TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS addons (id INTEGER PRIMARY KEY,metadata BLOB,addonID TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,summary TEXT NOT NULL,description TEXT NOT NULL, news TEXT NOT NULL DEFAULT '');
+
+        CREATE INDEX IF NOT EXISTS idxAddons ON addons(addonID);
+
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo );
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon );
+        CREATE UNIQUE INDEX IF NOT EXISTS idxBroken ON broken(addonID);
+        CREATE UNIQUE INDEX IF NOT EXISTS idxBlack ON blacklist(addonID);
+        CREATE UNIQUE INDEX IF NOT EXISTS idxPackage ON package(filename);
+
+        COMMIT;
+    """
+
+    def has_version(self):
+        res = self.cursor.execute(
             """
-            BEGIN;
-
-            CREATE TABLE IF NOT EXISTS version (idVersion integer, iCompressCount integer);
-            CREATE TABLE IF NOT EXISTS repo (id integer primary key, addonID text,checksum text, lastcheck text, version text);
-            CREATE TABLE IF NOT EXISTS addonlinkrepo (idRepo integer, idAddon integer);
-            CREATE TABLE IF NOT EXISTS broken (id integer primary key, addonID text, reason text);
-            CREATE TABLE IF NOT EXISTS blacklist (id integer primary key, addonID text);
-            CREATE TABLE IF NOT EXISTS package (id integer primary key, addonID text, filename text, hash text);
-            CREATE TABLE IF NOT EXISTS installed (id INTEGER PRIMARY KEY, addonID TEXT UNIQUE, enabled BOOLEAN, installDate TEXT, lastUpdated TEXT, lastUsed TEXT, origin TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS addons (id INTEGER PRIMARY KEY,metadata BLOB,addonID TEXT NOT NULL,version TEXT NOT NULL,name TEXT NOT NULL,summary TEXT NOT NULL,description TEXT NOT NULL, news TEXT NOT NULL DEFAULT '');
-
-            CREATE INDEX IF NOT EXISTS idxAddons ON addons(addonID);
-
-            CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_1 ON addonlinkrepo ( idAddon, idRepo );
-            CREATE UNIQUE INDEX IF NOT EXISTS ix_addonlinkrepo_2 ON addonlinkrepo ( idRepo, idAddon );
-            CREATE UNIQUE INDEX IF NOT EXISTS idxBroken ON broken(addonID);
-            CREATE UNIQUE INDEX IF NOT EXISTS idxBlack ON blacklist(addonID);
-            CREATE UNIQUE INDEX IF NOT EXISTS idxPackage ON package(filename);
-
-            COMMIT;
-        """
+            SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'version'
+            """
         )
+
+        if res.fetchone() is None:
+            return False
+
+        return self.cursor.execute("SELECT 1 FROM version").fetchone() is not None
+
+    def populate(self, database_version):
+        # A database that already records a schema version belongs to Kodi;
+        # adding tables to it could break Kodi's own migrations.
+        if not self.has_version():
+            if int(database_version) >= 33:
+                self.cursor.executescript(self.SCHEMA_33)
+            else:
+                self.cursor.executescript(self.SCHEMA_27)
 
         try:
             self.cursor.execute("BEGIN TRANSACTION")
